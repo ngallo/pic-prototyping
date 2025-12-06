@@ -1,3 +1,3 @@
-# PIC Specification
+# PIC Prototype Protocol
 
-This repository contains the spec for the PIC (Provenance Identity Continuity for Distributed Execution Systems) protocol.
+This repository contains the prototype protocol for PIC (Provenance Identity Continuity for Distributed Execution Systems).
