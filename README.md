@@ -252,7 +252,7 @@ AI Agent A
 
 ```
 
-The key idea:
+### The key idea
 
 - Alice authorizes an action and receives a PCA
 - Alice passes the same PCA to an AI Agent
@@ -263,7 +263,7 @@ The key idea:
 - Authority only decreases, never expands
 - Origin (p_0) remains Alice throughout
 
-> What is a Tool?
+### What is a Tool?
 
 A tool can be any executor that enforces PIC:
 
