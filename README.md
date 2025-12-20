@@ -280,7 +280,7 @@ agents execute using their own credentials.
 
 > PIC implements the **Authority Continuity** principle. 
 > 
-> On top of this, it enables **Governance** and **Auditing** integration at each step of the execution flow.
+> **Governance** and **Auditing** are integrated at each step of the execution flow as a PIC extension.
 
 ---
 
