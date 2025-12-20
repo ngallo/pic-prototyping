@@ -206,7 +206,7 @@ Alice exploits Bob’s authority
 
 ---
 
-###  Why PIC Works
+##  Why PIC Works
 
 ```text
 PIC flow:
@@ -252,7 +252,7 @@ AI Agent A
 
 ```
 
-### Key Idea
+The key idea:
 
 - Alice authorizes an action and receives a PCA
 - Alice passes the same PCA to an AI Agent
@@ -263,7 +263,7 @@ AI Agent A
 - Authority only decreases, never expands
 - Origin (p_0) remains Alice throughout
 
-### What is a Tool?
+> What is a Tool?
 
 A tool can be any executor that enforces PIC:
 
@@ -277,7 +277,7 @@ A tool can be any executor that enforces PIC:
 
 If it validates PCA, it is PIC-compliant.
 
-### Why This Matters
+### Why This Matters ?
 
 Traditional AI-agent systems rely on ambient authority:
 agents execute using their own credentials.
