@@ -244,7 +244,7 @@ AI Agent A
   │  PCA_1 ⊆ PCA_0
   ├──────────────▶ Tool / API
   │
-  │  PCA_2 ⊆ PCA_1
+  │  PCA_2 ⊆ PCA_0
   └──────────────▶ AI Agent B
                      │
                      │  PCA_3 ⊆ PCA_2
