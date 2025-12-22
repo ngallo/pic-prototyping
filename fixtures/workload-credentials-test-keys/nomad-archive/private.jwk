@@ -1,0 +1,7 @@
+{
+  "kid": "did:web:archive.nomad.example#key-202512",
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "x": "BA6lUxD04YMsstBptNus7kGJhL5_Rcry8_wMc7MfzrQ",
+  "d": "e32nKpyKMkzB6JYvMt8WA50tMt_ovTS_VVXD7jQd6Sc"
+}

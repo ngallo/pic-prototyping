@@ -1,0 +1,26 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
+  ],
+  "assertionMethod": [
+    "did:web:gateway.sovereign.example#key-202512"
+  ],
+  "authentication": [
+    "did:web:gateway.sovereign.example#key-202512"
+  ],
+  "id": "did:web:gateway.sovereign.example",
+  "verificationMethod": [
+    {
+      "controller": "did:web:gateway.sovereign.example",
+      "id": "did:web:gateway.sovereign.example#key-202512",
+      "publicKeyJwk": {
+        "crv": "Ed25519",
+        "kid": "did:web:gateway.sovereign.example#key-202512",
+        "kty": "OKP",
+        "x": "geFxuOpx6GJ9hquCyA1OWeapUeQk6vxD4wEHguhC5-U"
+      },
+      "type": "Ed25519VerificationKey2020"
+    }
+  ]
+}
