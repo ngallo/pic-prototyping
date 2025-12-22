@@ -25,6 +25,14 @@ pub struct TrustPlaneIdentity {
     pub cat_kid: String,
 }
 
+/// Workload identity type for credentialSubject
+#[derive(Clone)]
+pub enum WorkloadIdentityType {
+    Spiffe { spiffe_id: String },
+    Kubernetes { namespace: String, service_account: String },
+    Did { did: String },
+}
+
 fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -87,10 +95,12 @@ pub async fn trustplane_gen(
     });
 
     // Self-issued VC for TrustPlane
-    let vc = create_vc(
+    let identity_type = WorkloadIdentityType::Did { did: did.clone() };
+    let vc = create_pic_credential(
         &did,
         name,
         "TrustAnchor",
+        &identity_type,
         &did,
         &issuer_kid,
         &issuer_key,
@@ -140,6 +150,7 @@ pub async fn trustplane_gen(
 pub async fn workload_gen(
     name: &str,
     domain: &str,
+    identity_type: WorkloadIdentityType,
     issuer: &TrustPlaneIdentity,
 ) -> Result<Identity> {
     let dir = fixtures_dir().join(name);
@@ -168,10 +179,11 @@ pub async fn workload_gen(
     });
 
     // VC issued by TrustPlane
-    let vc = create_vc(
+    let vc = create_pic_credential(
         &did,
         name,
         "Executor",
+        &identity_type,
         &issuer.did,
         &issuer.issuer_kid,
         &issuer.issuer_key,
@@ -207,10 +219,31 @@ pub async fn workload_gen(
     })
 }
 
-async fn create_vc(
+fn workload_identity_to_json(identity_type: &WorkloadIdentityType) -> serde_json::Value {
+    match identity_type {
+        WorkloadIdentityType::Spiffe { spiffe_id } => serde_json::json!({
+            "type": "spiffe",
+            "spiffeId": spiffe_id
+        }),
+        WorkloadIdentityType::Kubernetes { namespace, service_account } => serde_json::json!({
+            "type": "kubernetes",
+            "namespace": namespace,
+            "serviceAccount": service_account
+        }),
+        WorkloadIdentityType::Did { did } => serde_json::json!({
+            "type": "did",
+            "did": did
+        }),
+    }
+}
+
+/// Create PIC Executor Credential
+/// Schema: https://pic-protocol.org/credentials/v1
+async fn create_pic_credential(
     subject_did: &str,
     name: &str,
     role: &str,
+    identity_type: &WorkloadIdentityType,
     issuer_did: &str,
     issuer_kid: &str,
     issuer_key: &JWK,
@@ -219,15 +252,19 @@ async fn create_vc(
     let credential_id = format!("urn:uuid:{}", Uuid::new_v4());
 
     let vc_without_proof = serde_json::json!({
-        "@context": ["https://www.w3.org/2018/credentials/v1"],
+        "@context": [
+            "https://www.w3.org/2018/credentials/v1",
+            "https://pic-protocol.org/credentials/v1"
+        ],
         "id": credential_id,
-        "type": ["VerifiableCredential", "PICWorkloadCredential"],
+        "type": ["VerifiableCredential", "PICExecutorCredential"],
         "issuer": issuer_did,
         "issuanceDate": &now,
         "credentialSubject": {
             "id": subject_did,
             "name": name,
-            "role": role
+            "role": role,
+            "workloadIdentity": workload_identity_to_json(identity_type)
         }
     });
 

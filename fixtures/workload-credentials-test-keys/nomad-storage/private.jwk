@@ -2,6 +2,6 @@
   "kid": "did:web:storage.nomad.example#key-202512",
   "kty": "OKP",
   "crv": "Ed25519",
-  "x": "Iz4LljrAajh1vPtCIe53VPoq82MK5tAdsUardl9xVf8",
-  "d": "HJmDmXol1Smb9jVPbfEUfegwDZZfvBLh8K3bHveKCqE"
+  "x": "7xOxw5tuIEYJ80bnJ1KtgcVuwL0EcHIeg86f6y6wNLQ",
+  "d": "niymbKFwPiDW4KL1YJpbrV1g-eIHTrb9lUwv-KkSYWE"
 }

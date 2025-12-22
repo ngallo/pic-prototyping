@@ -18,7 +18,7 @@
         "crv": "Ed25519",
         "kid": "did:web:gateway.nomad.example#key-202512",
         "kty": "OKP",
-        "x": "XCXMbn3jP56RoBUjGyKhAr9s5BVrWjvmqehpG8w2VE0"
+        "x": "qQrZhAR55Y56_cIRN-x4SMhZfbnDgOxLmnUl1xpPrRg"
       },
       "type": "Ed25519VerificationKey2020"
     }
