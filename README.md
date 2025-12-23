@@ -206,7 +206,7 @@ Alice exploits Bob’s authority
 
 ---
 
-##  Why PIC Works
+## Why PIC Works
 
 ```text
 PIC flow:
@@ -300,8 +300,8 @@ agents execute using their own credentials.
 
 ### Governance and Auditing
 
-> PIC implements the **Authority Continuity** principle. 
-> 
+PIC implements the **Authority Continuity** principle.
+
 > **Governance** and **Auditing** are integrated at each step of the execution flow as a PIC extension on the top of the Continuity enforcement.
 
 ---
