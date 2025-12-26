@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use core::{
+use pic_pca::{                    // ← Cambia da "pca" a "pic_pca"
     PcaPayload, Executor, ExecutorBinding,
     Provenance, CatProvenance, ExecutorProvenance, KeyMaterial,
     Constraints, TemporalConstraints,
