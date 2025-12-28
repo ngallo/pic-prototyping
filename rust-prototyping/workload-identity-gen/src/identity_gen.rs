@@ -1,3 +1,19 @@
+/*
+ * Copyright Nitro Agility S.r.l.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 use anyhow::Result;
 use chrono::Utc;
 use ssi::claims::jws::JwsPayload;
@@ -27,6 +43,12 @@ pub struct TrustPlaneIdentity {
 
 /// Workload identity type for credentialSubject
 #[derive(Clone)]
+pub struct WorkloadIdentity {
+    pub organization: String,
+    pub identity_type: WorkloadIdentityType,
+}
+
+#[derive(Clone)]
 pub enum WorkloadIdentityType {
     Spiffe { spiffe_id: String },
     Kubernetes { namespace: String, service_account: String },
@@ -48,10 +70,32 @@ fn key_id_with_date(did: &str, purpose: &str) -> String {
     format!("{}#{}-{}", did, purpose, date)
 }
 
+fn workload_identity_to_json(identity: &WorkloadIdentity) -> serde_json::Value {
+    let mut base = match &identity.identity_type {
+        WorkloadIdentityType::Spiffe { spiffe_id } => serde_json::json!({
+            "type": "spiffe",
+            "spiffeId": spiffe_id
+        }),
+        WorkloadIdentityType::Kubernetes { namespace, service_account } => serde_json::json!({
+            "type": "kubernetes",
+            "namespace": namespace,
+            "serviceAccount": service_account
+        }),
+        WorkloadIdentityType::Did { did } => serde_json::json!({
+            "type": "did",
+            "did": did
+        }),
+    };
+
+    base["organization"] = serde_json::Value::String(identity.organization.clone());
+    base
+}
+
 /// Generate TrustPlane identity with two keys
 pub async fn trustplane_gen(
     name: &str,
     domain: &str,
+    organization: &str,
 ) -> Result<TrustPlaneIdentity> {
     let dir = fixtures_dir().join(name);
     fs::create_dir_all(&dir)?;
@@ -95,12 +139,16 @@ pub async fn trustplane_gen(
     });
 
     // Self-issued VC for TrustPlane
-    let identity_type = WorkloadIdentityType::Did { did: did.clone() };
+    let identity = WorkloadIdentity {
+        organization: organization.to_string(),
+        identity_type: WorkloadIdentityType::Did { did: did.clone() },
+    };
+
     let vc = create_pic_credential(
         &did,
         name,
         "TrustAnchor",
-        &identity_type,
+        &identity,
         &did,
         &issuer_kid,
         &issuer_key,
@@ -133,6 +181,7 @@ pub async fn trustplane_gen(
     )?;
 
     println!("📦 {} (TrustPlane/CAT)", name);
+    println!("   Organization: {}", organization);
     println!("   DID: {}", did);
     println!("   Issuer kid: {}", issuer_kid);
     println!("   CAT kid: {}", cat_kid);
@@ -146,12 +195,13 @@ pub async fn trustplane_gen(
     })
 }
 
-/// Generate workload (executor) identity
+/// Generate workload (executor) identity with VC and VP
 pub async fn workload_gen(
     name: &str,
     domain: &str,
-    identity_type: WorkloadIdentityType,
+    identity: WorkloadIdentity,
     issuer: &TrustPlaneIdentity,
+    challenge: Option<&str>,
 ) -> Result<Identity> {
     let dir = fixtures_dir().join(name);
     fs::create_dir_all(&dir)?;
@@ -183,10 +233,20 @@ pub async fn workload_gen(
         &did,
         name,
         "Executor",
-        &identity_type,
+        &identity,
         &issuer.did,
         &issuer.issuer_kid,
         &issuer.issuer_key,
+    ).await?;
+
+    // VP signed by holder (this IS the PoP!)
+    let vp = create_verifiable_presentation(
+        &did,
+        &signing_kid,
+        &signing_key,
+        &vc,
+        challenge,
+        Some(&issuer.did),
     ).await?;
 
     // Write files
@@ -206,11 +266,17 @@ pub async fn workload_gen(
         dir.join("credential.vc.json"),
         serde_json::to_string_pretty(&vc)?,
     )?;
+    fs::write(
+        dir.join("presentation.vp.json"),
+        serde_json::to_string_pretty(&vp)?,
+    )?;
 
     println!("📦 {} (Executor)", name);
+    println!("   Organization: {}", identity.organization);
     println!("   DID: {}", did);
     println!("   Signing kid: {}", signing_kid);
     println!("   VC issuer: {}", issuer.issuer_kid);
+    println!("   VP: presentation.vp.json (PoP implicit)");
 
     Ok(Identity {
         did,
@@ -219,31 +285,12 @@ pub async fn workload_gen(
     })
 }
 
-fn workload_identity_to_json(identity_type: &WorkloadIdentityType) -> serde_json::Value {
-    match identity_type {
-        WorkloadIdentityType::Spiffe { spiffe_id } => serde_json::json!({
-            "type": "spiffe",
-            "spiffeId": spiffe_id
-        }),
-        WorkloadIdentityType::Kubernetes { namespace, service_account } => serde_json::json!({
-            "type": "kubernetes",
-            "namespace": namespace,
-            "serviceAccount": service_account
-        }),
-        WorkloadIdentityType::Did { did } => serde_json::json!({
-            "type": "did",
-            "did": did
-        }),
-    }
-}
-
 /// Create PIC Executor Credential
-/// Schema: https://pic-protocol.org/credentials/v1
 async fn create_pic_credential(
     subject_did: &str,
     name: &str,
     role: &str,
-    identity_type: &WorkloadIdentityType,
+    identity: &WorkloadIdentity,
     issuer_did: &str,
     issuer_kid: &str,
     issuer_key: &JWK,
@@ -264,7 +311,8 @@ async fn create_pic_credential(
             "id": subject_did,
             "name": name,
             "role": role,
-            "workloadIdentity": workload_identity_to_json(identity_type)
+            "organization": &identity.organization,
+            "workloadIdentity": workload_identity_to_json(identity)
         }
     });
 
@@ -282,4 +330,159 @@ async fn create_pic_credential(
     });
 
     Ok(vc)
+}
+
+/// Create a Verifiable Presentation wrapping a VC.
+///
+/// The VP signature by the holder IS the Proof of Possession:
+/// - VC says: "this DID has these properties" (signed by issuer)
+/// - VP says: "I control this DID" (signed by holder)
+///
+/// In PIC context, this VP can be used as ExecutorAttestation with type "vp"
+/// without needing a separate PoP field.
+async fn create_verifiable_presentation(
+    holder_did: &str,
+    holder_kid: &str,
+    holder_key: &JWK,
+    verifiable_credential: &serde_json::Value,
+    challenge: Option<&str>,
+    domain: Option<&str>,
+) -> Result<serde_json::Value> {
+    let now = Utc::now().to_rfc3339();
+    let presentation_id = format!("urn:uuid:{}", Uuid::new_v4());
+
+    let vp_without_proof = serde_json::json!({
+        "@context": [
+            "https://www.w3.org/2018/credentials/v1",
+            "https://pic-protocol.org/credentials/v1"
+        ],
+        "id": presentation_id,
+        "type": ["VerifiablePresentation"],
+        "holder": holder_did,
+        "verifiableCredential": [verifiable_credential]
+    });
+
+    // Build proof with optional challenge/domain for freshness binding
+    let mut proof = serde_json::json!({
+        "type": "Ed25519Signature2020",
+        "created": &now,
+        "verificationMethod": holder_kid,
+        "proofPurpose": "authentication"
+    });
+
+    // Challenge binds VP to a specific request (e.g., PCC nonce)
+    if let Some(c) = challenge {
+        proof["challenge"] = serde_json::Value::String(c.to_string());
+    }
+
+    // Domain binds VP to a specific verifier (CAT)
+    if let Some(d) = domain {
+        proof["domain"] = serde_json::Value::String(d.to_string());
+    }
+
+    // Sign the VP (this IS the PoP - holder proves control of private key)
+    let payload = serde_json::to_vec(&vp_without_proof)?;
+    let jws = payload.sign(holder_key).await?;
+
+    let mut vp = vp_without_proof;
+    proof["jws"] = serde_json::Value::String(jws.to_string());
+    vp["proof"] = proof;
+
+    Ok(vp)
+}
+
+// Example usage
+#[tokio::main]
+async fn main() -> Result<()> {
+    println!("🔐 Generating PIC test identities...\n");
+
+    // Generate TrustPlanes
+    let nomad_tp = trustplane_gen(
+        "nomad-trustplane",
+        "trustplane.nomad.example.com",
+        "Nomad Ltd",
+    ).await?;
+
+    println!();
+
+    let sovereign_tp = trustplane_gen(
+        "sovereign-trustplane",
+        "trustplane.sovereign.example.com",
+        "Sovereign Ltd",
+    ).await?;
+
+    println!();
+
+    // Generate Nomad workloads
+    let _nomad_gateway = workload_gen(
+        "nomad-gateway",
+        "gateway.nomad.example.com",
+        WorkloadIdentity {
+            organization: "Nomad Ltd".to_string(),
+            identity_type: WorkloadIdentityType::Kubernetes {
+                namespace: "production".to_string(),
+                service_account: "gateway-sa".to_string(),
+            },
+        },
+        &nomad_tp,
+        Some("pcc-nonce-12345"),
+    ).await?;
+
+    println!();
+
+    let _nomad_storage = workload_gen(
+        "nomad-storage",
+        "storage.nomad.example.com",
+        WorkloadIdentity {
+            organization: "Nomad Ltd".to_string(),
+            identity_type: WorkloadIdentityType::Kubernetes {
+                namespace: "production".to_string(),
+                service_account: "storage-sa".to_string(),
+            },
+        },
+        &nomad_tp,
+        Some("pcc-nonce-67890"),
+    ).await?;
+
+    println!();
+
+    // Generate Sovereign workloads
+    let _sovereign_api = workload_gen(
+        "sovereign-api",
+        "api.sovereign.example.com",
+        WorkloadIdentity {
+            organization: "Sovereign Ltd".to_string(),
+            identity_type: WorkloadIdentityType::Spiffe {
+                spiffe_id: "spiffe://sovereign.example.com/ns/prod/sa/api".to_string(),
+            },
+        },
+        &sovereign_tp,
+        Some("pcc-nonce-abcdef"),
+    ).await?;
+
+    println!();
+
+    let _sovereign_processor = workload_gen(
+        "sovereign-processor",
+        "processor.sovereign.example.com",
+        WorkloadIdentity {
+            organization: "Sovereign Ltd".to_string(),
+            identity_type: WorkloadIdentityType::Spiffe {
+                spiffe_id: "spiffe://sovereign.example.com/ns/prod/sa/processor".to_string(),
+            },
+        },
+        &sovereign_tp,
+        Some("pcc-nonce-ghijkl"),
+    ).await?;
+
+    println!("\n✅ All identities generated successfully!");
+    println!("\nGenerated files in fixtures/workload-credentials-test-keys/:");
+    println!("  nomad-trustplane/");
+    println!("  nomad-gateway/");
+    println!("  nomad-storage/");
+    println!("  sovereign-trustplane/");
+    println!("  sovereign-api/");
+    println!("  sovereign-processor/");
+
+    Ok(())
 }

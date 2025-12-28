@@ -18,7 +18,7 @@
         "crv": "Ed25519",
         "kid": "did:web:audit.nomad.example#key-202512",
         "kty": "OKP",
-        "x": "zRb_E5D9vzuJ0_79GAi6RtLcfwWxstYtDvBr8M0o4fc"
+        "x": "6a_SSmfztAT9-ZkjjHTr7iTI-Lih_WLAeG7GsBvT0DI"
       },
       "type": "Ed25519VerificationKey2020"
     }

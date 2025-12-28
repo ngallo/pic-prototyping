@@ -2,5 +2,5 @@
   "kid": "did:web:trustplane.sovereign.example#issuer-key-202512",
   "kty": "OKP",
   "crv": "Ed25519",
-  "x": "Hlblhtu9v3JaYukidIs6clYGvXfGFnlTu4PhoHBle1g"
+  "x": "hwyRnfyB9_BLBLa20npk6uzD0XbNtI2NMAqoJED__LE"
 }

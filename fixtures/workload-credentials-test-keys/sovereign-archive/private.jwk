@@ -2,6 +2,6 @@
   "kid": "did:web:archive.sovereign.example#key-202512",
   "kty": "OKP",
   "crv": "Ed25519",
-  "x": "Ftf9NO4lpFTYPvDvZCnoj_xbotxJ8v9wHU-cIXMyuEQ",
-  "d": "6hgyH6N7SpR42m41lsLxkwDnNojSk98O0hiOMsc6Da0"
+  "x": "3cuauxdQdzzxzEGGj72TPuig8TRVh3t6GYwJK8YFmCE",
+  "d": "CixlR4yK-sBlqJ2KZLUlMtQqNEXYzM2AOVV6U3jKEt8"
 }

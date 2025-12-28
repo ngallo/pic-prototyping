@@ -18,7 +18,7 @@
         "crv": "Ed25519",
         "kid": "did:web:archive.sovereign.example#key-202512",
         "kty": "OKP",
-        "x": "Ftf9NO4lpFTYPvDvZCnoj_xbotxJ8v9wHU-cIXMyuEQ"
+        "x": "3cuauxdQdzzxzEGGj72TPuig8TRVh3t6GYwJK8YFmCE"
       },
       "type": "Ed25519VerificationKey2020"
     }

@@ -20,7 +20,7 @@
         "crv": "Ed25519",
         "kid": "did:web:trustplane.sovereign.example#issuer-key-202512",
         "kty": "OKP",
-        "x": "Hlblhtu9v3JaYukidIs6clYGvXfGFnlTu4PhoHBle1g"
+        "x": "hwyRnfyB9_BLBLa20npk6uzD0XbNtI2NMAqoJED__LE"
       },
       "type": "Ed25519VerificationKey2020"
     },
@@ -31,7 +31,7 @@
         "crv": "Ed25519",
         "kid": "did:web:trustplane.sovereign.example#cat-key-202512",
         "kty": "OKP",
-        "x": "TPbW4mmp6lsT2dHGCA_aCLD5XUpfOM8yA53JNJPHSmw"
+        "x": "K9oYgaivMXllXJBqHmf3qzasduI9No1XHH9a3OmHuSo"
       },
       "type": "Ed25519VerificationKey2020"
     }
