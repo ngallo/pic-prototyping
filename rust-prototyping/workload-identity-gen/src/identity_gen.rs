@@ -405,6 +405,7 @@ async fn create_verifiable_presentation(
 }
 
 // Example usage
+#[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("🔐 Generating PIC test identities...\n");

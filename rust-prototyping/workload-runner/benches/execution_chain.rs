@@ -108,13 +108,13 @@ fn print_timing_breakdown() {
             let avg_cat: f64 = samples
                 .iter()
                 .filter_map(|t| t.hops.get(i))
-                .map(|h| h.cat_call.as_nanos() as f64)
+                .map(|h| h.trustplane_call.as_nanos() as f64)
                 .sum::<f64>()
                 / iterations as f64;
 
             let avg_logic: f64 = samples
                 .iter()
-                .filter_map(|t| t.hops.get(i))
+                .filter_map(|t| t.hops.get(i))  
                 .map(|h| h.business_logic.as_nanos() as f64)
                 .sum::<f64>()
                 / iterations as f64;
