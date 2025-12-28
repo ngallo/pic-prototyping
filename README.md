@@ -33,6 +33,7 @@ how **PIC eliminates the problem structurally**.
 ---
 
 ## Actors, Roles, and Identities
+
 ```text
 ┌───────────────────────────────┐
 │            Alice              │
@@ -84,6 +85,7 @@ how **PIC eliminates the problem structurally**.
 │ Executes ALL file operations  │
 │ strictly based on PCA         │
 └───────────────────────────────┘
+
 ```
 
 ---
@@ -100,6 +102,7 @@ This example focuses on **authorization semantics**, not identity proof mechanic
 ---
 
 ## End-to-End Call Flow
+
 ```text
 Alice
   │ HTTP request + OAuth token
@@ -118,11 +121,13 @@ Carol (Storage)
   │ enforces authority using PCA
   ▼
 Result
+
 ```
 
 ---
 
 ## Carol Storage Logic (Rust, PCA-Enforced)
+
 ```rust
 fn process(pca: &Pca, input_file: &str, content: &str) -> Result<String, Error> {
     let result = if exists(pca, input_file)? && can_read(pca, input_file)? {
@@ -137,6 +142,7 @@ fn process(pca: &Pca, input_file: &str, content: &str) -> Result<String, Error> 
 
     Ok(output_file)
 }
+
 ```
 
 Carol **never** checks caller identity directly.  
@@ -145,6 +151,7 @@ She enforces **only what the PCA allows**.
 ---
 
 ## Case 1: Bob's Own Transaction (Legitimate)
+
 ```text
 Bob starts transaction:
   PCA_0:
@@ -159,6 +166,7 @@ Carol validates:
 
 ✓ Read allowed
 ✓ Write allowed
+
 ```
 
 ---
@@ -166,6 +174,7 @@ Carol validates:
 ## Case 2: Alice Attempts Confused Deputy Attack (Blocked)
 
 Alice tries to steal system logs via Bob.
+
 ```text
 Alice → Gateway:
   OAuth token (user-scoped)
@@ -188,6 +197,7 @@ Fallback:
 
 Alice receives:
   ONLY her own content
+
 ```
 
 **No system data leaks.**
@@ -195,6 +205,7 @@ Alice receives:
 ---
 
 ## Why Token-Based Systems Fail Here
+
 ```text
 OAuth-only / token-based flow:
 
@@ -205,11 +216,13 @@ Bob returns data to Alice
 
 ❌ Confused Deputy:
 Alice exploits Bob's authority
+
 ```
 
 ---
 
 ## Why PIC Works
+
 ```text
 PIC flow:
 
@@ -221,6 +234,7 @@ does NOT exist in Alice's transaction.
 
 No service can "help" a user
 do something they are not allowed to do.
+
 ```
 
 | Transaction Origin | read /user/* | read /sys/* | write /user/* |
@@ -235,6 +249,7 @@ do something they are not allowed to do.
 This section illustrates how the same PIC authority propagation model applies to AI agents and tool-based execution, without changing the architecture or security assumptions.
 
 No new concepts are introduced: only Executors change.
+
 ```text
 Alice (Human User)
   │
@@ -250,6 +265,7 @@ AI Agent A
                      │
                      │  PCA_3 ⊆ PCA_2
                      └────────▶ Tool / API
+
 ```
 
 ### The key idea

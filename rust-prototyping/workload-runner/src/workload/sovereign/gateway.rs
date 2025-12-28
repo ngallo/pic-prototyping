@@ -25,7 +25,6 @@ impl Gateway {
         archive.next(request).await
     }
 
-
     pub async fn next(&self, request: Request) -> Result<Response> {
         self.identity.print();
         println!("   → Forwarding to Archive");
