@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
- use anyhow::Result;
+use anyhow::Result;
 
 mod identity_gen;
 
@@ -51,7 +51,8 @@ async fn main() -> Result<()> {
         "sovereign-trustplane",
         "trustplane.sovereign.example",
         "Sovereign Ltd",
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -69,7 +70,8 @@ async fn main() -> Result<()> {
             identity,
             &sovereign_tp,
             Some(&format!("pcc-nonce-sovereign-{}", workload)),
-        ).await?;
+        )
+        .await?;
         println!();
     }
 
@@ -77,11 +79,8 @@ async fn main() -> Result<()> {
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("🌐 Federation: Nomad Ltd\n");
 
-    let nomad_tp = trustplane_gen(
-        "nomad-trustplane",
-        "trustplane.nomad.example",
-        "Nomad Ltd",
-    ).await?;
+    let nomad_tp =
+        trustplane_gen("nomad-trustplane", "trustplane.nomad.example", "Nomad Ltd").await?;
 
     println!();
 
@@ -100,7 +99,8 @@ async fn main() -> Result<()> {
         audit_identity,
         &nomad_tp,
         Some("pcc-nonce-nomad-audit"),
-    ).await?;
+    )
+    .await?;
 
     println!();
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");

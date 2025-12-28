@@ -50,9 +50,16 @@ pub struct WorkloadIdentity {
 
 #[derive(Clone)]
 pub enum WorkloadIdentityType {
-    Spiffe { spiffe_id: String },
-    Kubernetes { namespace: String, service_account: String },
-    Did { did: String },
+    Spiffe {
+        spiffe_id: String,
+    },
+    Kubernetes {
+        namespace: String,
+        service_account: String,
+    },
+    Did {
+        did: String,
+    },
 }
 
 fn fixtures_dir() -> PathBuf {
@@ -76,7 +83,10 @@ fn workload_identity_to_json(identity: &WorkloadIdentity) -> serde_json::Value {
             "type": "spiffe",
             "spiffeId": spiffe_id
         }),
-        WorkloadIdentityType::Kubernetes { namespace, service_account } => serde_json::json!({
+        WorkloadIdentityType::Kubernetes {
+            namespace,
+            service_account,
+        } => serde_json::json!({
             "type": "kubernetes",
             "namespace": namespace,
             "serviceAccount": service_account
@@ -152,7 +162,8 @@ pub async fn trustplane_gen(
         &did,
         &issuer_kid,
         &issuer_key,
-    ).await?;
+    )
+    .await?;
 
     // Write files
     fs::write(
@@ -237,7 +248,8 @@ pub async fn workload_gen(
         &issuer.did,
         &issuer.issuer_kid,
         &issuer.issuer_key,
-    ).await?;
+    )
+    .await?;
 
     // VP signed by holder (this IS the PoP!)
     let vp = create_verifiable_presentation(
@@ -247,7 +259,8 @@ pub async fn workload_gen(
         &vc,
         challenge,
         Some(&issuer.did),
-    ).await?;
+    )
+    .await?;
 
     // Write files
     fs::write(
@@ -401,7 +414,8 @@ async fn main() -> Result<()> {
         "nomad-trustplane",
         "trustplane.nomad.example.com",
         "Nomad Ltd",
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -409,7 +423,8 @@ async fn main() -> Result<()> {
         "sovereign-trustplane",
         "trustplane.sovereign.example.com",
         "Sovereign Ltd",
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -426,7 +441,8 @@ async fn main() -> Result<()> {
         },
         &nomad_tp,
         Some("pcc-nonce-12345"),
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -442,7 +458,8 @@ async fn main() -> Result<()> {
         },
         &nomad_tp,
         Some("pcc-nonce-67890"),
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -458,7 +475,8 @@ async fn main() -> Result<()> {
         },
         &sovereign_tp,
         Some("pcc-nonce-abcdef"),
-    ).await?;
+    )
+    .await?;
 
     println!();
 
@@ -473,7 +491,8 @@ async fn main() -> Result<()> {
         },
         &sovereign_tp,
         Some("pcc-nonce-ghijkl"),
-    ).await?;
+    )
+    .await?;
 
     println!("\n✅ All identities generated successfully!");
     println!("\nGenerated files in fixtures/workload-credentials-test-keys/:");

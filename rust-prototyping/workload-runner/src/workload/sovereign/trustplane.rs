@@ -14,40 +14,53 @@
  * limitations under the License.
  */
 
-//! Mock CAT (Causal Authority for Trust) service.
-//!
-//! In production, CAT is a separate service that:
-//! 1. Receives PoC from executor
-//! 2. Validates monotonicity (ops ⊆ predecessor.ops)
-//! 3. Verifies attestations
-//! 4. Issues new PCA for the next hop
+//! TrustPlane - the Causal Authority for Trust (CAT) in the Sovereign federation.
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use ed25519_dalek::SigningKey;
 use pic::pca::{
-    CatProvenance, Constraints, CoseSigned, ExecutorBinding, ExecutorProvenance,
-    Executor, PcaPayload, Provenance, SignedPca, SignedPoc,
-    TemporalConstraints,
+    CatProvenance, Constraints, CoseSigned, Executor, ExecutorBinding, ExecutorProvenance,
+    PcaPayload, Provenance, SignedPca, SignedPoc, TemporalConstraints,
 };
-use rand::rngs::OsRng;
 
-/// Mock CAT service for testing.
-pub struct MockCat {
+use super::WorkloadIdentity;
+
+pub struct TrustPlane {
+    identity: WorkloadIdentity,
     signing_key: SigningKey,
-    kid: String,
 }
 
-impl MockCat {
-    /// Creates a new mock CAT with a random signing key.
-    pub fn new() -> Self {
-        let signing_key = SigningKey::generate(&mut OsRng);
-        Self {
+impl TrustPlane {
+    pub fn new(identity: WorkloadIdentity) -> Result<Self> {
+        let signing_key = identity
+            .private_key
+            .clone()
+            .ok_or_else(|| anyhow!("TrustPlane requires a private key"))?;
+
+        Ok(Self {
+            identity,
             signing_key,
-            kid: "did:web:trustplane.sovereign.example#cat-key-202512".to_string(),
+        })
+    }
+
+    /// Creates with fallback to deterministic key (for testing without real keys)
+    pub fn new_with_fallback(identity: WorkloadIdentity) -> Self {
+        let signing_key = identity.private_key.clone().unwrap_or_else(|| {
+            // Fallback: deterministic key from kid (for testing)
+            let mut seed = [0u8; 32];
+            let kid_bytes = identity.kid.as_bytes();
+            for (i, byte) in kid_bytes.iter().enumerate().take(32) {
+                seed[i] = *byte;
+            }
+            SigningKey::from_bytes(&seed)
+        });
+
+        Self {
+            identity,
+            signing_key,
         }
     }
 
-    /// Creates PCA_0 (origin PCA) for the chain.
     pub fn create_pca_0(
         &self,
         p_0: &str,
@@ -58,7 +71,9 @@ impl MockCat {
             hop: 0,
             p_0: p_0.to_string(),
             ops,
-            executor: Executor { binding: executor_binding },
+            executor: Executor {
+                binding: executor_binding,
+            },
             provenance: None,
             constraints: Some(Constraints {
                 temporal: Some(TemporalConstraints {
@@ -69,64 +84,62 @@ impl MockCat {
             }),
         };
 
-        let signed: SignedPca = CoseSigned::sign_ed25519(&pca, &self.kid, &self.signing_key)?;
+        let signed: SignedPca =
+            CoseSigned::sign_ed25519(&pca, &self.identity.kid, &self.signing_key)?;
         Ok(signed.to_bytes()?)
     }
 
-    /// Processes a PoC and returns the new PCA for the next hop.
-    ///
-    /// In production this would:
-    /// 1. Verify PoC signature
-    /// 2. Verify predecessor PCA signature
-    /// 3. Validate monotonicity (ops ⊆ predecessor.ops)
-    /// 4. Verify attestations
-    /// 5. Issue new PCA
     pub fn process_poc(&self, poc_bytes: &[u8]) -> Result<Vec<u8>> {
-        // Deserialize PoC
         let signed_poc: SignedPoc = CoseSigned::from_bytes(poc_bytes)?;
         let poc = signed_poc.payload_unverified()?;
 
-        // Deserialize predecessor PCA
         let signed_pred: SignedPca = CoseSigned::from_bytes(&poc.predecessor)?;
         let pred_pca = signed_pred.payload_unverified()?;
 
-        // In production: verify signatures, check monotonicity, verify attestations
-        // For mock: just create the new PCA
-
-        // Extract executor binding from successor (or use empty if not specified)
         let executor_binding = poc.successor.executor.clone().unwrap_or_default();
 
-        // Create new PCA with incremented hop
         let new_pca = PcaPayload {
             hop: pred_pca.hop + 1,
             p_0: pred_pca.p_0.clone(),
             ops: poc.successor.ops.clone(),
-            executor: Executor { binding: executor_binding },
+            executor: Executor {
+                binding: executor_binding,
+            },
             provenance: Some(Provenance {
                 cat: CatProvenance {
-                    kid: self.kid.clone(),
-                    signature: signed_pred.to_bytes()?.get(..64).unwrap_or(&[0u8; 64]).to_vec(),
+                    kid: self.identity.kid.clone(),
+                    signature: signed_pred
+                        .to_bytes()?
+                        .get(..64)
+                        .unwrap_or(&[0u8; 64])
+                        .to_vec(),
                 },
                 executor: ExecutorProvenance {
                     kid: signed_poc.kid().unwrap_or_default(),
                     signature: poc_bytes.get(..64).unwrap_or(&[0u8; 64]).to_vec(),
                 },
             }),
-            constraints: poc.successor.constraints.clone().or(pred_pca.constraints.clone()),
+            constraints: poc
+                .successor
+                .constraints
+                .clone()
+                .or(pred_pca.constraints.clone()),
         };
 
-        let signed: SignedPca = CoseSigned::sign_ed25519(&new_pca, &self.kid, &self.signing_key)?;
+        let signed: SignedPca =
+            CoseSigned::sign_ed25519(&new_pca, &self.identity.kid, &self.signing_key)?;
         Ok(signed.to_bytes()?)
     }
 
-    /// Returns the CAT's key identifier.
     pub fn kid(&self) -> &str {
-        &self.kid
+        &self.identity.kid
     }
-}
 
-impl Default for MockCat {
-    fn default() -> Self {
-        Self::new()
+    pub fn did(&self) -> &str {
+        &self.identity.did
+    }
+
+    pub fn has_real_key(&self) -> bool {
+        self.identity.private_key.is_some()
     }
 }

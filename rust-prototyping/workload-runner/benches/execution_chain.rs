@@ -45,8 +45,11 @@ fn print_timing_breakdown() {
         samples.push(timing);
     }
 
-    let avg_total_ns: f64 =
-        samples.iter().map(|t| t.total.as_nanos() as f64).sum::<f64>() / iterations as f64;
+    let avg_total_ns: f64 = samples
+        .iter()
+        .map(|t| t.total.as_nanos() as f64)
+        .sum::<f64>()
+        / iterations as f64;
 
     let avg_initial_create_ns: f64 = samples
         .iter()

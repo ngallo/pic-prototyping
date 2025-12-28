@@ -18,7 +18,6 @@
 
 use std::time::{Duration, Instant};
 
-/// Timing for a single hop in the PIC chain.
 #[derive(Debug, Clone, Default)]
 pub struct HopTiming {
     pub hop_name: String,
@@ -26,7 +25,7 @@ pub struct HopTiming {
     pub pca_deserialize: Duration,
     pub poc_create: Duration,
     pub poc_serialize: Duration,
-    pub cat_call: Duration,
+    pub trustplane_call: Duration,
     pub pca_received_size: usize,
     pub pca_new_size: usize,
     pub poc_size: usize,
@@ -34,7 +33,6 @@ pub struct HopTiming {
     pub total: Duration,
 }
 
-/// Timing for the entire chain execution.
 #[derive(Debug, Clone, Default)]
 pub struct ChainTiming {
     pub hops: Vec<HopTiming>,
@@ -51,14 +49,12 @@ impl ChainTiming {
         println!("==========================");
         println!();
 
-        // Initial PCA
         println!("INITIAL PCA (PCA_0)");
         println!("    Create              {}", format_duration(self.initial_pca_create));
         println!("    Sign                {}", format_duration(self.initial_pca_sign));
         println!("    Size                {} bytes", self.initial_pca_size);
         println!();
 
-        // Per-hop breakdown
         println!("PER-HOP BREAKDOWN");
         println!();
 
@@ -69,7 +65,7 @@ impl ChainTiming {
             println!("    PoC create          {}", format_duration(hop.poc_create));
             println!("    PoC serialize       {}", format_duration(hop.poc_serialize));
             println!("    PoC size            {} bytes", hop.poc_size);
-            println!("    CAT call            {}", format_duration(hop.cat_call));
+            println!("    TrustPlane call     {}", format_duration(hop.trustplane_call));
             println!("    PCA new size        {} bytes", hop.pca_new_size);
             println!("    Business logic      {}", format_duration(hop.business_logic));
             println!("    ─────────────────────────────────");
@@ -77,7 +73,6 @@ impl ChainTiming {
             println!();
         }
 
-        // Summary
         println!("SUMMARY");
         println!("    Total hops          {}", self.hops.len());
         println!("    Total time          {}", format_duration(self.total));
@@ -86,22 +81,20 @@ impl ChainTiming {
         }
         println!();
 
-        // Breakdown by category
         let total_pca_deser: Duration = self.hops.iter().map(|h| h.pca_deserialize).sum();
         let total_poc_create: Duration = self.hops.iter().map(|h| h.poc_create).sum();
         let total_poc_ser: Duration = self.hops.iter().map(|h| h.poc_serialize).sum();
-        let total_cat: Duration = self.hops.iter().map(|h| h.cat_call).sum();
+        let total_tp: Duration = self.hops.iter().map(|h| h.trustplane_call).sum();
         let total_logic: Duration = self.hops.iter().map(|h| h.business_logic).sum();
 
         println!("TIME BY CATEGORY (all hops)");
         println!("    PCA deserialize     {} ({:.1}%)", format_duration(total_pca_deser), pct(total_pca_deser, self.total));
         println!("    PoC create          {} ({:.1}%)", format_duration(total_poc_create), pct(total_poc_create, self.total));
         println!("    PoC serialize       {} ({:.1}%)", format_duration(total_poc_ser), pct(total_poc_ser, self.total));
-        println!("    CAT call            {} ({:.1}%)", format_duration(total_cat), pct(total_cat, self.total));
+        println!("    TrustPlane call     {} ({:.1}%)", format_duration(total_tp), pct(total_tp, self.total));
         println!("    Business logic      {} ({:.1}%)", format_duration(total_logic), pct(total_logic, self.total));
         println!();
 
-        // Size summary
         let total_pca_size: usize = self.hops.iter().map(|h| h.pca_new_size).sum();
         let total_poc_size: usize = self.hops.iter().map(|h| h.poc_size).sum();
 
@@ -114,7 +107,6 @@ impl ChainTiming {
     }
 }
 
-/// Timer helper for measuring operations.
 pub struct Timer {
     start: Instant,
 }

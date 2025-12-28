@@ -1,6 +1,17 @@
 version: '3'
 
 tasks:
+  # Source code quality
+
+  fmt:
+    desc: Format the source code using rustfmt
+    silent: true
+    dir: ./rust-prototyping
+    cmds:
+      - cargo fmt --all
+
+  # Crates
+
   codegen:
     dir:  ./rust-prototyping
     cmds:

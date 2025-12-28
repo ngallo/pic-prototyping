@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-use anyhow::Result;
-use pic::pca::{CoseSigned, ExecutorBinding, PocBuilder, SignedPca, SignedPoc, SigningAlgorithm};
+use anyhow::{anyhow, Result};
+use ed25519_dalek::SigningKey;
+use pic::pca::{CoseSigned, ExecutorBinding, PocBuilder, SignedPca, SignedPoc};
 use std::sync::Arc;
 
 use super::{registry::Registry, Request, Response, WorkloadIdentity};
@@ -23,6 +24,7 @@ use crate::workload::instrumentation::{HopTiming, Timer};
 
 pub struct Storage {
     identity: Arc<WorkloadIdentity>,
+    signing_key: SigningKey,
     registry: Arc<Registry>,
 }
 
@@ -30,8 +32,26 @@ impl Storage {
     pub fn new(registry: Arc<Registry>) -> Result<Self> {
         let identity = registry
             .get("sovereign-storage")
-            .ok_or_else(|| anyhow::anyhow!("sovereign-storage not found in registry"))?;
-        Ok(Self { identity, registry })
+            .ok_or_else(|| anyhow!("sovereign-storage not found in registry"))?;
+
+        let signing_key = identity
+            .private_key
+            .clone()
+            .unwrap_or_else(|| Self::fallback_key(&identity.kid));
+
+        Ok(Self {
+            identity,
+            signing_key,
+            registry,
+        })
+    }
+
+    fn fallback_key(kid: &str) -> SigningKey {
+        let mut seed = [0u8; 32];
+        for (i, byte) in kid.as_bytes().iter().enumerate().take(32) {
+            seed[i] = *byte;
+        }
+        SigningKey::from_bytes(&seed)
     }
 
     pub fn load() -> Result<Self> {
@@ -52,10 +72,9 @@ impl Storage {
         let pca_bytes = request
             .pca_bytes
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No PCA received"))?;
+            .ok_or_else(|| anyhow!("No PCA received"))?;
         timing.pca_received_size = pca_bytes.len();
 
-        // Deserialize PCA
         let deser_timer = Timer::start();
         let signed_pca: SignedPca = CoseSigned::from_bytes(pca_bytes)?;
         let pca = signed_pca.payload_unverified()?;
@@ -63,7 +82,6 @@ impl Storage {
 
         println!("   ← Received PCA hop={} ops={:?}", pca.hop, pca.ops);
 
-        // Create PoC
         let poc_create_timer = Timer::start();
         let executor_binding = ExecutorBinding::new()
             .with("federation", "sovereign.example")
@@ -78,27 +96,20 @@ impl Storage {
             .map_err(anyhow::Error::msg)?;
         timing.poc_create = poc_create_timer.stop();
 
-        // Sign PoC with COSE_Sign1
         let poc_ser_timer = Timer::start();
-        let signed_poc: SignedPoc = CoseSigned::sign_with(
-            &poc,
-            &self.identity.kid,
-            SigningAlgorithm::EdDSA,
-            |_| Ok(vec![0u8; 64]), // Mock signature
-        )?;
+        let signed_poc: SignedPoc =
+            CoseSigned::sign_ed25519(&poc, &self.identity.kid, &self.signing_key)?;
         let poc_bytes = signed_poc.to_bytes()?;
         timing.poc_serialize = poc_ser_timer.stop();
         timing.poc_size = poc_bytes.len();
 
         println!("   → Created PoC ({} bytes) - final hop", poc_bytes.len());
 
-        // Call CAT (even on final hop for consistency)
-        let cat_timer = Timer::start();
-        let new_pca_bytes = self.registry.cat().process_poc(&poc_bytes)?;
-        timing.cat_call = cat_timer.stop();
+        let tp_timer = Timer::start();
+        let new_pca_bytes = self.registry.trustplane().process_poc(&poc_bytes)?;
+        timing.trustplane_call = tp_timer.stop();
         timing.pca_new_size = new_pca_bytes.len();
 
-        // Business logic - actual storage operation
         let logic_timer = Timer::start();
         let output_file = format!("/user/output_{}.txt", timestamp());
         let data = format!("Processed: {}", request.content);
@@ -109,6 +120,10 @@ impl Storage {
         timing.total = hop_start.stop();
 
         Ok((Response { output_file, data }, vec![timing]))
+    }
+
+    pub fn has_real_key(&self) -> bool {
+        self.identity.private_key.is_some()
     }
 }
 

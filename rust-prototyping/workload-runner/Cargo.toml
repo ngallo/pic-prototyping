@@ -20,6 +20,8 @@ pic-protocol.workspace = true
 ed25519-dalek.workspace = true
 rand.workspace = true
 chrono.workspace = true
+base64.workspace = true
+bs58.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.7", features = ["async_tokio"] }

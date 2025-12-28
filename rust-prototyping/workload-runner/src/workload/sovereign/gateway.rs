@@ -34,7 +34,6 @@ impl Gateway {
         Ok(Self { identity, registry })
     }
 
-    /// Old method for compatibility
     pub fn load() -> Result<Self> {
         let registry = Arc::new(Registry::load()?);
         Self::new(registry)
@@ -46,7 +45,6 @@ impl Gateway {
 
         self.identity.print();
 
-        // Create PCA_0 (origin)
         let pca_create_timer = Timer::start();
 
         let executor_binding = ExecutorBinding::new()
@@ -62,7 +60,7 @@ impl Gateway {
         let sign_timer = Timer::start();
         let pca_bytes = self
             .registry
-            .cat()
+            .trustplane()
             .create_pca_0(p_0, ops, executor_binding)?;
         timing.initial_pca_sign = sign_timer.stop();
         timing.initial_pca_size = pca_bytes.len();
@@ -70,7 +68,6 @@ impl Gateway {
         println!("   → Created PCA_0 ({} bytes)", pca_bytes.len());
         println!("   → Forwarding to Archive");
 
-        // Forward to next hop with PCA
         let archive = Archive::new(self.registry.clone())?;
         let next_request = Request {
             content: request.content,

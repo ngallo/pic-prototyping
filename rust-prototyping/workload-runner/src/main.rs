@@ -23,7 +23,6 @@ use workload_runner::workload::sovereign::{gateway::Gateway, registry::Registry,
 async fn main() -> Result<()> {
     println!("🚀 PIC Workload Runner\n");
 
-    // Pre-load all identities once
     let start_load = Instant::now();
     let registry = Arc::new(Registry::load()?);
     println!("   ⏱️  Load time: {:?}\n", start_load.elapsed());
@@ -32,7 +31,7 @@ async fn main() -> Result<()> {
 
     let request = Request {
         content: "Hello from Alice".to_string(),
-        pca_bytes: None, // Origin - no PCA yet
+        pca_bytes: None,
     };
 
     println!();

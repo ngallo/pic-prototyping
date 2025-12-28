@@ -40,6 +40,8 @@ iref = "3"
 static-iref = "3"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 rand = "0.8"
+base64 = "0.22"
+bs58 = "0.5"
 
 # Benchmark
 criterion = { version = "0.5", features = ["html_reports"] }
