@@ -106,7 +106,7 @@ impl Archive {
         println!("   → Created PoC ({} bytes)", poc_bytes.len());
 
         let tp_timer = Timer::start();
-        let new_pca_bytes = self.registry.trustplane().process_poc(&poc_bytes)?;
+        let new_pca_bytes = self.registry.trustplane().process_poc(&poc_bytes, self.registry.as_ref())?;
         timing.trustplane_call = tp_timer.stop();
         timing.pca_new_size = new_pca_bytes.len();
 

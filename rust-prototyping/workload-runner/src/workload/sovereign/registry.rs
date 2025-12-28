@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use ed25519_dalek::VerifyingKey;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -27,6 +28,7 @@ pub struct Registry {
 }
 
 impl Registry {
+    /// Load all workload identities and initialize TrustPlane
     pub fn load() -> Result<Self> {
         let names = [
             "sovereign-trustplane",
@@ -36,16 +38,25 @@ impl Registry {
         ];
         let mut identities = HashMap::new();
 
+        // Load all workload identities into registry
         for name in names {
             let identity = WorkloadIdentity::load(name)?;
             identities.insert(name.to_string(), Arc::new(identity));
         }
 
-        let tp_identity = WorkloadIdentity::load("sovereign-trustplane")?;
-        let trustplane = Arc::new(TrustPlane::new_with_fallback(tp_identity));
+        // Get the trustplane identity from already loaded identities
+        // IMPORTANT: Don't reload it - use the same instance to ensure key consistency
+        let tp_identity = identities
+            .get("sovereign-trustplane")
+            .ok_or_else(|| anyhow!("sovereign-trustplane not found in loaded identities"))?;
+
+        // Create TrustPlane using the same identity instance
+        // This ensures signing key matches the public key in registry
+        let trustplane = Arc::new(TrustPlane::new(tp_identity.as_ref().clone())?);
 
         println!("📂 Registry: loaded {} identities", identities.len());
         println!("🔐 TrustPlane: {}", trustplane.did());
+        println!("🔐 TrustPlane kid: {}", trustplane.kid());
         println!("   Using real key: {}", trustplane.has_real_key());
 
         Ok(Self {
@@ -54,11 +65,43 @@ impl Registry {
         })
     }
 
+    /// Lookup verifying key by kid (key identifier)
+    /// Searches all loaded identities for matching kid
+    pub fn get_verifying_key(&self, kid: &str) -> Option<&VerifyingKey> {
+        self.identities
+            .values()
+            .find(|id| id.kid == kid)
+            .and_then(|id| id.public_key.as_ref())
+    }
+
+    /// Lookup verifying key by DID
+    pub fn get_verifying_key_by_did(&self, did: &str) -> Option<&VerifyingKey> {
+        self.identities
+            .values()
+            .find(|id| id.did == did)
+            .and_then(|id| id.public_key.as_ref())
+    }
+
+    /// Get workload identity by name
     pub fn get(&self, name: &str) -> Option<Arc<WorkloadIdentity>> {
         self.identities.get(name).cloned()
     }
 
+    /// Get reference to TrustPlane
     pub fn trustplane(&self) -> Arc<TrustPlane> {
         self.trustplane.clone()
+    }
+
+    /// Check if a kid is known to the registry
+    pub fn is_known_kid(&self, kid: &str) -> bool {
+        self.identities.values().any(|id| id.kid == kid)
+    }
+
+    /// Get all known kids (useful for debugging)
+    pub fn known_kids(&self) -> Vec<&str> {
+        self.identities
+            .values()
+            .map(|id| id.kid.as_str())
+            .collect()
     }
 }

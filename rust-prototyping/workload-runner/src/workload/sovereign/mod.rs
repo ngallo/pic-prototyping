@@ -65,7 +65,7 @@ impl WorkloadIdentity {
                 .with_context(|| format!("Failed to read credential.vc.json for {}", name))?,
         )?;
 
-        let vp_path = path.join("presentation.vp.json");
+        let vp_path = path.join("presentation.vp.json"); 
         let (vp, vp_bytes) = if vp_path.exists() {
             let vp: serde_json::Value = serde_json::from_str(&fs::read_to_string(&vp_path)?)?;
             let vp_bytes = serde_json::to_vec(&vp)?;
@@ -150,6 +150,8 @@ impl WorkloadIdentity {
             "signing-key.json", 
             "private.jwk",
             "key.json",
+            "issuer-key.private.jwk",
+            "cat-key.private.jwk",
         ];
 
         for file in key_files {

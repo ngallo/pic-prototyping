@@ -106,7 +106,7 @@ impl Storage {
         println!("   → Created PoC ({} bytes) - final hop", poc_bytes.len());
 
         let tp_timer = Timer::start();
-        let new_pca_bytes = self.registry.trustplane().process_poc(&poc_bytes)?;
+        let new_pca_bytes = self.registry.trustplane().process_poc(&poc_bytes, &self.registry)?;
         timing.trustplane_call = tp_timer.stop();
         timing.pca_new_size = new_pca_bytes.len();
 

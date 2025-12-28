@@ -35,5 +35,5 @@ tasks:
   wk-bench:
     dir:  ./rust-prototyping
     cmds:
-          -  cargo bench -p workload-runner 
+          -  cargo bench -p workload-runner
     silent: true
