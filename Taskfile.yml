@@ -30,7 +30,7 @@ tasks:
   wk-run:
     dir:  ./rust-prototyping
     cmds:
-          - cargo run -p workload-runner
+          - cargo run -p workload-runner --release
     silent: true
   wk-bench:
     dir:  ./rust-prototyping
